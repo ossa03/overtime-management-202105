@@ -1,0 +1,23 @@
+{
+	"name": "overtime_management_202105",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ossa03/overtime-manegement-202105.git"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/ossa03/overtime-manegement-202105/issues"
+	},
+	"homepage": "https://github.com/ossa03/overtime-manegement-202105#readme",
+	"dependencies": {
+		"@types/google-apps-script": "^1.0.31"
+	}
+}
