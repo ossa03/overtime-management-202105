@@ -67,11 +67,17 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 	const parsed_start = toDateFromStrTime(start)
 	const parsed_end = toDateFromStrTime(end)
 	const diff_time = ((parsed_end.getTime() - parsed_start.getTime()) / 1000 / 60).toFixed(1) // 分
+	const diff_time_2 = ((parsed_end.getTime() - parsed_start.getTime()) / 1000 / 60 / 60).toFixed(1) // 時間
 
-	// 10列目に残業時間のヘッダーが無ければ 入力する．
+	// 10列目に残業時間（分）のヘッダーが無ければ 入力する．
 	const total_time_cell = sheet?.getRange(1, 10)
 	if (total_time_cell?.getValue() === '') {
 		total_time_cell.setValue('残業時間（分）')
+	}
+	// 11列目に残業時間（時間）のヘッダーが無ければ 入力する．
+	const total_time_cell_2 = sheet?.getRange(1, 11)
+	if (total_time_cell_2?.getValue() === '') {
+		total_time_cell_2.setValue('残業時間（分）')
 	}
 
 	// spreadsheetに追加する．
@@ -86,6 +92,7 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 		end,
 		description,
 		diff_time,
+		diff_time_2,
 	])
 	// sheet?.appendRow([uuid, created_at, created_at, radiologist, modality, date, start, end, description, diff_time])
 
@@ -131,8 +138,14 @@ const copySheet = () => {
 			const newSheet = ss.getSheetByName(fileName)
 			// 旧シートからデータを転記
 			newSheet?.getRange(1, 1, lr, lc).setValues(sheet?.getRange(1, 1, lr, lc).getValues())
-			// おそらくフォーマットが狂うので整形（ここでは4列目以降に残業開始時間、終了時間が並んでいるものと想定）
-			// newSheet?.getRange(2, 4, lr - 1, lc - 1).setNumberFormat('hh:mm')
+
+			// おそらくフォーマットが狂うので整形
+			// （ここでは7, 8列目に残業開始時間、終了時間が並んでいるものと想定）
+			newSheet?.getRange(2, 7, lr - 1, 2).setNumberFormat('hh:mm')
+			//（ここでは2,3,6列目の作成日時、変更日時2箇所）
+			newSheet?.getRange(2, 2, lr - 1, 2).setNumberFormat('yyyy-mm-dd')
+			// （ここでは6列目の実施日）
+			newSheet?.getRange(2, 6, lr - 1, 1).setNumberFormat('yyyy-mm-dd')
 
 			// 旧シート初期化
 			if (new Date().getDate() === 1) {
