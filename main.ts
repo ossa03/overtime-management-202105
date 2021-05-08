@@ -4,27 +4,33 @@ const ss: GoogleAppsScript.Spreadsheet.Spreadsheet = SpreadsheetApp.openById(ssI
 const sheet: GoogleAppsScript.Spreadsheet.Sheet | null = ss.getSheetByName('今月')
 const scriptProperties: GoogleAppsScript.Properties.Properties = PropertiesService.getScriptProperties()
 
+// トリガーで毎日AM1:00に実行する
 function main() {
 	console.log('This is Main function !')
-	const fileName = createFileName()
-	const pdfBlob = createPdfBlob(ss, fileName)
-	const pdfFile = createPdfFile(pdfBlob)
-	const fileUrl = getFileUrl(pdfFile)
 
-	// メールに送信
-	sendEmail(pdfBlob, fileUrl)
+	// 1日かどうかチェックする．
+	if (isCheckDate()) {
+		// シートをコピー
+		copySheet()
+		const fileName = createFileName()
+		const pdfBlob = createPdfBlob(ss, fileName)
+		const pdfFile = createPdfFile(pdfBlob)
+		const fileUrl = getFileUrl(pdfFile)
 
-	// LINEに送信
-	const lineNotifyMessage = `\n\n今月の時間外勤務表\n\n${fileUrl}`
-	sendLineNotify(lineNotifyMessage)
+		// メールに送信
+		sendEmail(pdfBlob, fileUrl)
+
+		// LINEに送信
+		const lineNotifyMessage = `\n\n今月の時間外勤務表\n\n${fileUrl}`
+		sendLineNotify(lineNotifyMessage)
+	} else {
+		console.log('今日は1日じゃないので関数実行しませんでした．')
+	}
 }
 
-function sendLineNotify(message: string) {
+function sendLineNotify(message: string = 'テスト通知です') {
 	const LINE_NOTIFY_API_TOKEN = scriptProperties.getProperty('LINE_NOTIFY_API_TOKEN')
 	const LINE_NOTIFY_API_URL = 'https://notify-api.line.me/api/notify'
-
-	// TODOを取得する
-	// const { todo } = getItemsFromSpreadSheet()
 
 	const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
 		method: 'post',
@@ -58,9 +64,9 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 
 	// date,start,endはstring型なのでDate型に変換する．
 	const parsed_date = new Date(date)
-	const parsed_start = parseTime(start, parsed_date)
-	const parsed_end = parseTime(end, parsed_date)
-	const diff_time = (parsed_end.getTime() - parsed_start.getTime()) / 1000 / 60 // 分
+	const parsed_start = toDateFromStrTime(start)
+	const parsed_end = toDateFromStrTime(end)
+	const diff_time = ((parsed_end.getTime() - parsed_start.getTime()) / 1000 / 60).toFixed(1) // 分
 
 	// 10列目に残業時間のヘッダーが無ければ 入力する．
 	const total_time_cell = sheet?.getRange(1, 10)
@@ -69,7 +75,19 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 	}
 
 	// spreadsheetに追加する．
-	sheet?.appendRow([uuid, created_at, created_at, radiologist, modality, date, start, end, description, diff_time])
+	sheet?.appendRow([
+		uuid,
+		created_at,
+		created_at,
+		radiologist,
+		modality,
+		parsed_date,
+		start,
+		end,
+		description,
+		diff_time,
+	])
+	// sheet?.appendRow([uuid, created_at, created_at, radiologist, modality, date, start, end, description, diff_time])
 
 	// スプレッドシートに書き込まれるまで少し待機
 	Utilities.sleep(5 * 1000)
@@ -81,12 +99,51 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 	// lineNotifyFromMyForm(testDataMessage)
 }
 
-function parseTime(stringTime: string, date = new Date()): Date {
+function toDateFromStrTime(time: string): Date {
 	// '12:05'
-	const [HH, mm] = stringTime.split(':')
-	date.setHours(parseInt(HH))
-	date.setMinutes(parseInt(mm))
-	return date
+	const d = new Date()
+	const [HH, mm] = time.split(':')
+	d.setHours(parseInt(HH))
+	d.setMinutes(parseInt(mm))
+	return d
+}
+
+const copySheet = () => {
+	try {
+		// 新シート生成
+
+		// 既存シート数
+		const index = ss.getNumSheets()
+
+		// シート名生成
+		const fileName = createFileName()
+
+		// シート挿入
+		ss.insertSheet(fileName, index + 1)
+
+		// 新しいシートを作成して旧シートからコピーする
+		if (sheet !== null) {
+			// 最終行
+			const lr = sheet?.getLastRow()
+			// 最終列
+			const lc = sheet?.getLastColumn()
+			// 新シート作成
+			const newSheet = ss.getSheetByName(fileName)
+			// 旧シートからデータを転記
+			newSheet?.getRange(1, 1, lr, lc).setValues(sheet?.getRange(1, 1, lr, lc).getValues())
+			// おそらくフォーマットが狂うので整形（ここでは4列目以降に残業開始時間、終了時間が並んでいるものと想定）
+			// newSheet?.getRange(2, 4, lr - 1, lc - 1).setNumberFormat('hh:mm')
+
+			// 旧シート初期化
+			if (new Date().getDate() === 1) {
+				sheet?.deleteRows(2, lr - 1) // あえて.getRange().clear()は使わない
+			}
+		}
+
+		// トリガーが失敗したら知らせる
+	} catch (e) {
+		console.log('コピーシートError:: ', e)
+	}
 }
 
 function setScriptProperty() {

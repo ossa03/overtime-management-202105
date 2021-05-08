@@ -7,13 +7,13 @@ const createFileName = (): string => {
 	const yy = date.getFullYear()
 	const str_yy = String(yy)
 
-	// 月（前月が返ることに注意）
+	//! 月（0~11が返ることに注意）
 	const mm = date.getMonth()
 
 	let str_mm: string = ''
 	// １０月未満の場合は頭に０を付す
 	if (mm + 1 < 10) {
-		str_mm = '0' + String(mm)
+		str_mm = '0' + String(mm + 1)
 		// 1月の場合は０が返るから
 	} else if (mm === 0) {
 		str_mm = '01'
@@ -29,8 +29,8 @@ const createPdfBlob = (
 	spreadSheet: GoogleAppsScript.Spreadsheet.Spreadsheet,
 	fileName: string,
 ): GoogleAppsScript.Base.Blob => {
-	//! スプレッドシート全部をPDFとして取得されてしまう
-	//todo スプレッドシートを1シートずつPDF化する方法はないのか？
+	//! スプレッドシートのすべてのシートをPDFとして取得されてしまう
+	//todo スプレッドシートを1シートずつPDF化する方法はないのか？ 無さそう．
 	const pdfBlob = spreadSheet.getAs('application/pdf').setName(`${fileName}.pdf`)
 	// const pdfBlob = spreadSheet.getBlob().getAs('image/jpeg').setName(`${fileName}.jpeg`)
 	// -->Exception: application/pdf から image/jpeg への変換はサポートされていません。
@@ -51,6 +51,13 @@ const getFileUrl = (pdfFile: GoogleAppsScript.Drive.File): string => {
 	// Fileオブジェクト.getUrl()
 	const fileUrl = pdfFile.getUrl()
 	return fileUrl
+}
+
+// 本日が1日かどうかを判定する関数:boolean
+const isCheckDate = () => {
+	const today = new Date().getDate()
+	// もし１ならtrueを返す
+	return today === 1
 }
 
 // 自分宛てにPDFBlobをメールで送信する
