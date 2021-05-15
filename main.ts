@@ -70,14 +70,16 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 	const diff_time_2 = ((parsed_end.getTime() - parsed_start.getTime()) / 1000 / 60 / 60).toFixed(1) // 時間
 
 	// 10列目に残業時間（分）のヘッダーが無ければ 入力する．
+	const Header_10 = '残業時間（分）'
 	const total_time_cell = sheet?.getRange(1, 10)
-	if (total_time_cell?.getValue() === '') {
-		total_time_cell.setValue('残業時間（分）')
+	if (total_time_cell?.getValue() !== Header_10) {
+		total_time_cell?.setValue(Header_10)
 	}
 	// 11列目に残業時間（時間）のヘッダーが無ければ 入力する．
+	const Header_11 = '残業時間（時間）'
 	const total_time_cell_2 = sheet?.getRange(1, 11)
-	if (total_time_cell_2?.getValue() === '') {
-		total_time_cell_2.setValue('残業時間（分）')
+	if (total_time_cell_2?.getValue() !== Header_11) {
+		total_time_cell_2?.setValue(Header_11)
 	}
 
 	// spreadsheetに追加する．
@@ -100,7 +102,7 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 	Utilities.sleep(5 * 1000)
 
 	// const testDataMessage = `これはテストデータです．\n\n${e.postData.contents}`
-	const postMessage = `時間外勤務を登録しました．\n\n${date}\n${radiologist}\n${modality}\n${start} 〜 ${end}\n${description}`
+	const postMessage = `時間外勤務を登録しました．\n\n実施日: ${date}\n実施者: ${radiologist}\nモダリティ: ${modality}\n時間: ${start} 〜 ${end}\n業務内容: ${description}`
 	// LINEへ通知
 	sendLineNotify(postMessage)
 	// lineNotifyFromMyForm(testDataMessage)
