@@ -4,31 +4,29 @@ const ss: GoogleAppsScript.Spreadsheet.Spreadsheet = SpreadsheetApp.openById(ssI
 const sheet: GoogleAppsScript.Spreadsheet.Sheet | null = ss.getSheetByName('今月')
 const scriptProperties: GoogleAppsScript.Properties.Properties = PropertiesService.getScriptProperties()
 
-// トリガーで毎日AM1:00に実行する
+// トリガーで毎日AM6:00に実行する
 function main() {
-	console.log('This is Main function !')
+	console.log('Main function !')
 
-	// 1日かどうかチェックする．
-	if (isCheckDate()) {
-		// シートをコピー
-		copySheet()
-		const fileName = createFileName()
-		const pdfBlob = createPdfBlob(ss, fileName)
-		const pdfFile = createPdfFile(pdfBlob)
-		const fileUrl = getFileUrl(pdfFile)
+	// 1日かどうかチェックする．1日じゃなければ処理終了する．
+	if (!isCheckDateOne_()) return
 
-		// メールに送信
-		sendEmail(pdfBlob, fileUrl)
+	// シートをコピー
+	copySheet_()
+	const fileName = createFileName_()
+	const pdfBlob = createPdfBlob_(ss, fileName)
+	const pdfFile = createPdfFile_(pdfBlob)
+	const fileUrl = getFileUrl_(pdfFile)
 
-		// LINEに送信
-		const lineNotifyMessage = `\n\n今月の時間外勤務表\n\n${fileUrl}`
-		sendLineNotify(lineNotifyMessage)
-	} else {
-		console.log('今日は1日じゃないので関数実行しませんでした．')
-	}
+	// メールに送信
+	sendEmail_(pdfBlob, fileName, fileUrl)
+
+	// LINEに送信
+	const message = `\n\n今月の時間外勤務表を送信しました．\n\n${fileName}\n${fileUrl}`
+	sendLineNotify(message)
 }
 
-function sendLineNotify(message: string = 'テスト通知です') {
+function sendLineNotify(message: string = createFileName_()) {
 	const LINE_NOTIFY_API_TOKEN = scriptProperties.getProperty('LINE_NOTIFY_API_TOKEN')
 	const LINE_NOTIFY_API_URL = 'https://notify-api.line.me/api/notify'
 
@@ -47,12 +45,9 @@ function sendLineNotify(message: string = 'テスト通知です') {
 
 // POSTリクエストが来たときの処理 ---------------------------------------------------
 function doPost(e: GoogleAppsScript.Events.DoPost) {
-	// デバッグlog
-	console.log('e:  ', e)
-
 	// ReactAppからPOSTされたデータを取得する
 	const data: OvertimePostData = JSON.parse(e.postData.contents).data
-	let { radiologist, modality, date, start, end, description } = data
+	const { radiologist, modality, date, start, end, description } = data
 
 	// タイムスタンプ生成
 	const created_at = new Date()
@@ -64,12 +59,12 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 
 	// date,start,endはstring型なのでDate型に変換する．
 	const parsed_date = new Date(date)
-	const parsed_start = toDateFromStrTime(start)
-	const parsed_end = toDateFromStrTime(end)
+	const parsed_start = toDateFromStrTime_(start)
+	const parsed_end = toDateFromStrTime_(end)
 	const diff_time = ((parsed_end.getTime() - parsed_start.getTime()) / 1000 / 60).toFixed(1) // 分
 	const diff_time_2 = ((parsed_end.getTime() - parsed_start.getTime()) / 1000 / 60 / 60).toFixed(1) // 時間
 
-	// 10列目に残業時間（分）のヘッダーが無ければ 入力する．
+	// 10列目に残業時間（分）のヘッダーが無ければ入力する．
 	const Header_10 = '残業時間（分）'
 	const total_time_cell = sheet?.getRange(1, 10)
 	if (total_time_cell?.getValue() !== Header_10) {
@@ -96,20 +91,21 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 		diff_time,
 		diff_time_2,
 	])
-	// sheet?.appendRow([uuid, created_at, created_at, radiologist, modality, date, start, end, description, diff_time])
 
 	// スプレッドシートに書き込まれるまで少し待機
 	Utilities.sleep(5 * 1000)
 
-	// const testDataMessage = `これはテストデータです．\n\n${e.postData.contents}`
-	const postMessage = `時間外勤務を登録しました．\n\n実施日: ${date}\n実施者: ${radiologist}\nモダリティ: ${modality}\n時間: ${start} 〜 ${end}\n業務内容: ${description}`
+	// TODO シートネーム、sheetUrl取得
+	const ssUrl = ss.getUrl()
+	const crr_sheetName = ss.getActiveSheet().getName()
+
+	const postMessage = `「${crr_sheetName}」へ時間外勤務を登録しました．\n\n実施日: ${date}\n実施者: ${radiologist}\nモダリティ: ${modality}\n時間: ${start} 〜 ${end}\n業務内容: ${description}\n\n${ssUrl}`
 	// LINEへ通知
 	sendLineNotify(postMessage)
-	// lineNotifyFromMyForm(testDataMessage)
 }
 
-function toDateFromStrTime(time: string): Date {
-	// '12:05'
+function toDateFromStrTime_(time: string): Date {
+	// time = '12:05'
 	const d = new Date()
 	const [HH, mm] = time.split(':')
 	d.setHours(parseInt(HH))
@@ -117,19 +113,15 @@ function toDateFromStrTime(time: string): Date {
 	return d
 }
 
-const copySheet = () => {
+const copySheet_ = () => {
 	try {
 		// 新シート生成
-
 		// 既存シート数
 		const index = ss.getNumSheets()
-
 		// シート名生成
-		const fileName = createFileName()
-
+		const fileName = createFileName_()
 		// シート挿入
 		ss.insertSheet(fileName, index + 1)
-
 		// 新しいシートを作成して旧シートからコピーする
 		if (sheet !== null) {
 			// 最終行
@@ -140,7 +132,6 @@ const copySheet = () => {
 			const newSheet = ss.getSheetByName(fileName)
 			// 旧シートからデータを転記
 			newSheet?.getRange(1, 1, lr, lc).setValues(sheet?.getRange(1, 1, lr, lc).getValues())
-
 			// おそらくフォーマットが狂うので整形
 			// （ここでは7, 8列目に残業開始時間、終了時間が並んでいるものと想定）
 			newSheet?.getRange(2, 7, lr - 1, 2).setNumberFormat('hh:mm')
@@ -158,11 +149,11 @@ const copySheet = () => {
 		// トリガーが失敗したら知らせる
 	} catch (e) {
 		console.log('コピーシートError:: ', e)
+		sendLineNotify(`コピーシートError:: \n\n${e.message}`)
 	}
 }
 
-function setScriptProperty() {
-	// ys9d5Voj5gYDXK2GuAbskcpzq77gt2XDs3vMiKwseQB
+function setScriptProperty_() {
 	scriptProperties.setProperty('LINE_NOTIFY_API_TOKEN', 'ys9d5Voj5gYDXK2GuAbskcpzq77gt2XDs3vMiKwseQB')
 
 	console.log(scriptProperties.getProperty('LINE_NOTIFY_API_TOKEN') ?? '')
