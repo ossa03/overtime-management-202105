@@ -13,6 +13,7 @@ const createPdfBlob_ = (ss: GoogleAppsScript.Spreadsheet.Spreadsheet, fileName: 
 }
 
 // googleDriveの指定のフォルダ("過去データ")へ保存する
+//! すべてのsheetがPDFに変換されたしまう．
 const FOLDER_ID = '1oVv95yEt3Pm1itm8ocqKW8ij88ZXTobG'
 const createPdfFile_ = (blob: GoogleAppsScript.Base.Blob): GoogleAppsScript.Drive.File => {
 	const folder = DriveApp.getFolderById(FOLDER_ID) //フォルダを指定
@@ -49,6 +50,7 @@ const sendEmail_ = (pdfBlob: GoogleAppsScript.Base.Blob, fileName: string, fileU
 //2: スプレッドシートID (sheetId)
 //3: シートID (shId)
 //4: ファイル名 (fileName)
+//! 一つのsheetのみをPDFに変換できる．
 function createPdf_ver2_(folderId: string, ssId: string, sheetId: number, fileName: string) {
 	//PDFを作成するためのベースとなるURL
 	const baseUrl = 'https://docs.google.com/spreadsheets/d/' + ssId + '/export?gid=' + sheetId

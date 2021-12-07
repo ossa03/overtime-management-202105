@@ -16,8 +16,8 @@ function main() {
 	copySheet_()
 	const fileName = createFileName_()
 	const pdfBlob = createPdfBlob_(ss, fileName)
-	const pdfFile = createPdfFile_(pdfBlob)
-	const fileUrl = getFileUrl_(pdfFile)
+	//// const pdfFile = createPdfFile_(pdfBlob)
+	//// const fileUrl = getFileUrl_(pdfFile)
 
 	/* Version2
 	   Urlfetchを使用したバージョン
@@ -26,11 +26,11 @@ function main() {
 	const fileUrl_ver2 = getFileUrl_(file_ver2)
 
 	// メールに送信
-	sendEmail_(pdfBlob, fileName, fileUrl)
+	//// sendEmail_(pdfBlob, fileName, fileUrl)
 	sendEmail_(pdfBlob_ver2, fileName, fileUrl_ver2)
 
 	// LINEに送信
-	const message = `\n\n今月の時間外勤務表を送信しました．\n\n${fileName}\n${fileUrl}`
+	const message = `\n\n今月の時間外勤務表を送信しました．\n\n${fileName}\n${fileUrl_ver2}`
 	sendLineNotify(message)
 }
 
@@ -84,8 +84,8 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 	if (diff_time_cell_2?.getValue() !== Header_11) {
 		diff_time_cell_2?.setValue(Header_11)
 	}
-	// 12列目に合計残業時間（時間(分)）のヘッダーが無ければ 入力する．
-	const Header_12 = '合計残業時間（時間(分)'
+	// 12列目に合計（時間(分)）のヘッダーが無ければ 入力する．
+	const Header_12 = '合計（分/時間)'
 	const total_time_cell = sheet?.getRange(1, 12)
 	if (total_time_cell?.getValue() !== Header_12) {
 		total_time_cell?.setValue(Header_12)
@@ -107,11 +107,15 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 	])
 
 	// 合計時間を計算
-	let total_time = 0
+	let total_time_m = 0
+	let total_time_h = 0
 	sheet
 		?.getDataRange()
 		.getValues()
-		.forEach((row) => {
+		.forEach((row, idx) => {
+			// 1行目はヘッダーなので処理飛ばす
+			if (idx === 0) return
+
 			const [
 				uuid,
 				created_at,
@@ -126,12 +130,13 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 				diff_time_2,
 			] = row
 
-			const _total = Number(diff_time) + Number(diff_time_2)
-			total_time = _total
+			total_time_m = total_time_m + Number(diff_time)
+			total_time_h = total_time_h + Number(diff_time_2)
 		})
 
 	// 12行目2列目に合計時間を入力
-	sheet?.getRange(2, 12, 1, 1).setValue(total_time.toFixed())
+	const total_time = `${total_time_m}  /  ${total_time_h.toFixed(1)}`
+	sheet?.getRange(2, 12, 1, 1).setValue(total_time)
 
 	// スプレッドシートに書き込まれるまで少し待機
 	Utilities.sleep(5 * 1000)
@@ -188,7 +193,7 @@ const copySheet_ = () => {
 		}
 
 		// トリガーが失敗したら知らせる
-	} catch (e) {
+	} catch (e: any) {
 		console.log('コピーシートError:: ', e)
 		sendLineNotify(`コピーシートError:: \n\n${e.message}`)
 	}
