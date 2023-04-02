@@ -1,20 +1,20 @@
 // ファイル名を作成する．'202105' スクリプト実行の前月を取得したい
 const createFileName_ = (): string => {
-	const d = new Date()
-	const lastMonth = d.getMonth() - 1
-	d.setMonth(lastMonth)
-	return Utilities.formatDate(d, 'JST', 'yyyyMM')
+	const date = new Date()
+	const lastMonth = date.getMonth() - 1 //先月の月を取得
+	date.setMonth(lastMonth)
+	return Utilities.formatDate(date, "JST", "yyyyMM")
 }
 
 // スプレッドシートをPDFとして取得する
 const createPdfBlob_ = (ss: GoogleAppsScript.Spreadsheet.Spreadsheet, fileName: string): GoogleAppsScript.Base.Blob => {
-	const pdfBlob = ss.getAs('application/pdf').setName(`${fileName}.pdf`)
+	const pdfBlob = ss.getAs("application/pdf").setName(`${fileName}.pdf`)
 	return pdfBlob
 }
 
 // googleDriveの指定のフォルダ("過去データ")へ保存する
 //! すべてのsheetがPDFに変換されたしまう．
-const FOLDER_ID = '1oVv95yEt3Pm1itm8ocqKW8ij88ZXTobG'
+const FOLDER_ID = "1oVv95yEt3Pm1itm8ocqKW8ij88ZXTobG"
 const createPdfFile_ = (blob: GoogleAppsScript.Base.Blob): GoogleAppsScript.Drive.File => {
 	const folder = DriveApp.getFolderById(FOLDER_ID) //フォルダを指定
 	const pdfFile = folder.createFile(blob)
@@ -35,7 +35,7 @@ const isCheckDateOne_ = () => {
 
 // 自分宛てにPDFBlobをメールで送信する
 const sendEmail_ = (pdfBlob: GoogleAppsScript.Base.Blob, fileName: string, fileUrl: string): void => {
-	const MY_ADDRESS = 'kfcxd953pelo@gmail.com'
+	const MY_ADDRESS = "kfcxd953pelo@gmail.com"
 	MailApp.sendEmail(
 		MY_ADDRESS, // 宛先
 		`今月の時間外勤務表_${fileName}`, // 件名
@@ -53,26 +53,26 @@ const sendEmail_ = (pdfBlob: GoogleAppsScript.Base.Blob, fileName: string, fileU
 //! 一つのsheetのみをPDFに変換できる．
 function createPdf_ver2_(folderId: string, ssId: string, sheetId: number, fileName: string) {
 	//PDFを作成するためのベースとなるURL
-	const baseUrl = 'https://docs.google.com/spreadsheets/d/' + ssId + '/export?gid=' + sheetId
+	const baseUrl = "https://docs.google.com/spreadsheets/d/" + ssId + "/export?gid=" + sheetId
 
 	//★★★自由にカスタマイズしてください★★★
 	//PDFのオプションを指定
 	const pdfOptions =
-		'&exportFormat=pdf&format=pdf' +
-		'&size=A4' + //用紙サイズ (A4)
-		'&portrait=true' + //用紙の向き true: 縦向き / false: 横向き
-		'&fitw=true' + //ページ幅を用紙にフィットさせるか true: フィットさせる / false: 原寸大
-		'&top_margin=0.50' + //上の余白
-		'&right_margin=0.50' + //右の余白
-		'&bottom_margin=0.50' + //下の余白
-		'&left_margin=0.50' + //左の余白
-		'&horizontal_alignment=CENTER' + //水平方向の位置
-		'&vertical_alignment=TOP' + //垂直方向の位置
-		'&printtitle=false' + //スプレッドシート名の表示有無
-		'&sheetnames=true' + //シート名の表示有無
-		'&gridlines=false' + //グリッドラインの表示有無
-		'&fzr=false' + //固定行の表示有無
-		'&fzc=false' //固定列の表示有無;
+		"&exportFormat=pdf&format=pdf" + //! PDFを指定している
+		"&size=A4" + //用紙サイズ (A4)
+		"&portrait=true" + //用紙の向き true: 縦向き / false: 横向き
+		"&fitw=true" + //ページ幅を用紙にフィットさせるか true: フィットさせる / false: 原寸大
+		"&top_margin=0.50" + //上の余白
+		"&right_margin=0.50" + //右の余白
+		"&bottom_margin=0.50" + //下の余白
+		"&left_margin=0.50" + //左の余白
+		"&horizontal_alignment=CENTER" + //水平方向の位置
+		"&vertical_alignment=TOP" + //垂直方向の位置
+		"&printtitle=false" + //スプレッドシート名の表示有無
+		"&sheetnames=true" + //シート名の表示有無
+		"&gridlines=false" + //グリッドラインの表示有無
+		"&fzr=false" + //固定行の表示有無
+		"&fzc=false" //固定列の表示有無;
 
 	//PDFを作成するためのURL
 	const url = baseUrl + pdfOptions
@@ -83,7 +83,7 @@ function createPdf_ver2_(folderId: string, ssId: string, sheetId: number, fileNa
 	//headersにアクセストークンを格納する
 	const options = {
 		headers: {
-			Authorization: 'Bearer ' + token,
+			Authorization: "Bearer " + token,
 		},
 		muteHttpExceptions: true,
 	}
@@ -91,7 +91,7 @@ function createPdf_ver2_(folderId: string, ssId: string, sheetId: number, fileNa
 	//PDFを作成する
 	const pdfBlob_ver2 = UrlFetchApp.fetch(url, options)
 		.getBlob()
-		.setName(fileName + '_ver2' + '.pdf')
+		.setName(fileName + "_ver2" + ".pdf")
 
 	//PDFの保存先フォルダー
 	//フォルダーIDは引数のfolderIdを使用します

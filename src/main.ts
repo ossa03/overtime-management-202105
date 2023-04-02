@@ -1,15 +1,13 @@
 // スプレッドシート 時間外勤務表の管理
-const ssId = '1EhXDA7gHDe7hNZqbjDhERZabgYCrSsvIXaL-ohRr2Eg'
+const ssId = "1EhXDA7gHDe7hNZqbjDhERZabgYCrSsvIXaL-ohRr2Eg"
 const ss: GoogleAppsScript.Spreadsheet.Spreadsheet = SpreadsheetApp.openById(ssId)
-const sheet: GoogleAppsScript.Spreadsheet.Sheet | null = ss.getSheetByName('今月')
+const sheet: GoogleAppsScript.Spreadsheet.Sheet | null = ss.getSheetByName("今月")
 const sheetId = ss.getActiveSheet().getSheetId()
 const scriptProperties: GoogleAppsScript.Properties.Properties = PropertiesService.getScriptProperties()
 
 // トリガーで毎日AM6:00に実行する
 function main() {
-	console.log('Main function !')
-
-	// 1日かどうかチェックする．1日じゃなければ処理終了する．
+	// 日付が1日でなければ処理終了する．
 	if (!isCheckDateOne_()) return
 
 	// シートをコピー
@@ -26,7 +24,6 @@ function main() {
 	const fileUrl_ver2 = getFileUrl_(file_ver2)
 
 	// メールに送信
-	//// sendEmail_(pdfBlob, fileName, fileUrl)
 	sendEmail_(pdfBlob_ver2, fileName, fileUrl_ver2)
 
 	// LINEに送信
@@ -35,13 +32,13 @@ function main() {
 }
 
 function sendLineNotify(message: string = createFileName_()) {
-	const LINE_NOTIFY_API_TOKEN = scriptProperties.getProperty('LINE_NOTIFY_API_TOKEN')
-	const LINE_NOTIFY_API_URL = 'https://notify-api.line.me/api/notify'
+	const LINE_NOTIFY_API_TOKEN = scriptProperties.getProperty("LINE_NOTIFY_API_TOKEN")
+	const LINE_NOTIFY_API_URL = "https://notify-api.line.me/api/notify"
 
 	const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
-		method: 'post',
+		method: "post",
 		headers: {
-			'Content-Type': 'application/x-www-form-urlencoded',
+			"Content-Type": "application/x-www-form-urlencoded",
 			Authorization: `Bearer ${LINE_NOTIFY_API_TOKEN}`,
 		},
 		payload: { message },
@@ -73,19 +70,19 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 	const diff_time_2 = ((parsed_end.getTime() - parsed_start.getTime()) / 1000 / 60 / 60).toFixed(1) // 時間
 
 	// 10列目に残業時間（分）のヘッダーが無ければ入力する．
-	const Header_10 = '残業時間（分）'
+	const Header_10 = "残業時間（分）"
 	const diff_time_cell = sheet?.getRange(1, 10)
 	if (diff_time_cell?.getValue() !== Header_10) {
 		diff_time_cell?.setValue(Header_10)
 	}
 	// 11列目に残業時間（時間）のヘッダーが無ければ 入力する．
-	const Header_11 = '残業時間（時間）'
+	const Header_11 = "残業時間（時間）"
 	const diff_time_cell_2 = sheet?.getRange(1, 11)
 	if (diff_time_cell_2?.getValue() !== Header_11) {
 		diff_time_cell_2?.setValue(Header_11)
 	}
 	// 12列目に合計（時間(分)）のヘッダーが無ければ 入力する．
-	const Header_12 = '合計（分/時間)'
+	const Header_12 = "合計（分/時間)"
 	const total_time_cell = sheet?.getRange(1, 12)
 	if (total_time_cell?.getValue() !== Header_12) {
 		total_time_cell?.setValue(Header_12)
@@ -153,7 +150,7 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 function toDateFromStrTime_(time: string): Date {
 	// time = '12:05'
 	const d = new Date()
-	const [HH, mm] = time.split(':')
+	const [HH, mm] = time.split(":")
 	d.setHours(parseInt(HH))
 	d.setMinutes(parseInt(mm))
 	return d
@@ -180,11 +177,11 @@ const copySheet_ = () => {
 			newSheet?.getRange(1, 1, lr, lc).setValues(sheet?.getRange(1, 1, lr, lc).getValues())
 			// おそらくフォーマットが狂うので整形
 			// （ここでは7, 8列目に残業開始時間、終了時間が並んでいるものと想定）
-			newSheet?.getRange(2, 7, lr - 1, 2).setNumberFormat('hh:mm')
+			newSheet?.getRange(2, 7, lr - 1, 2).setNumberFormat("hh:mm")
 			//（ここでは2,3,6列目の作成日時、変更日時2箇所）
-			newSheet?.getRange(2, 2, lr - 1, 2).setNumberFormat('yyyy-mm-dd')
+			newSheet?.getRange(2, 2, lr - 1, 2).setNumberFormat("yyyy-mm-dd")
 			// （ここでは6列目の実施日）
-			newSheet?.getRange(2, 6, lr - 1, 1).setNumberFormat('yyyy-mm-dd')
+			newSheet?.getRange(2, 6, lr - 1, 1).setNumberFormat("yyyy-mm-dd")
 
 			// 旧シート初期化
 			if (new Date().getDate() === 1) {
@@ -194,24 +191,18 @@ const copySheet_ = () => {
 
 		// トリガーが失敗したら知らせる
 	} catch (e: any) {
-		console.log('コピーシートError:: ', e)
+		console.log("コピーシートError:: ", e)
 		sendLineNotify(`コピーシートError:: \n\n${e.message}`)
 	}
 }
 
-function setScriptProperty_() {
-	scriptProperties.setProperty('LINE_NOTIFY_API_TOKEN', 'ys9d5Voj5gYDXK2GuAbskcpzq77gt2XDs3vMiKwseQB')
-
-	console.log(scriptProperties.getProperty('LINE_NOTIFY_API_TOKEN') ?? '')
-}
-
 function test() {
-	console.log('This is Test Script !')
+	console.log("This is Test Script !")
 
 	// シートをコピー
 	copySheet_()
 	// let fileName = createFileName_()
-	const fileName = '_' + Utilities.getUuid()
+	const fileName = "_" + Utilities.getUuid()
 	const pdfBlob = createPdfBlob_(ss, fileName)
 	const pdfFile = createPdfFile_(pdfBlob)
 	const fileUrl = getFileUrl_(pdfFile)
