@@ -1,11 +1,14 @@
 // スプレッドシート 時間外勤務表の管理
+
+// グローバル変数
 const ssId = "1EhXDA7gHDe7hNZqbjDhERZabgYCrSsvIXaL-ohRr2Eg"
+const PDF_FOLDER_ID = "1oVv95yEt3Pm1itm8ocqKW8ij88ZXTobG" /// googleDriveの指定のフォルダ("時間外PDF")
 const ss: GoogleAppsScript.Spreadsheet.Spreadsheet = SpreadsheetApp.openById(ssId)
 const sheet: GoogleAppsScript.Spreadsheet.Sheet | null = ss.getSheetByName("今月")
 const sheetId = ss.getActiveSheet().getSheetId()
 const scriptProperties: GoogleAppsScript.Properties.Properties = PropertiesService.getScriptProperties()
 
-// トリガーで毎日AM6:00に実行する
+// トリガーで毎日17:00~18:00に実行する
 function main() {
 	// 日付が1日でなければ処理終了する．
 	if (!isCheckDateOne_()) return
@@ -13,14 +16,15 @@ function main() {
 	// シートをコピー
 	copySheet_()
 	const fileName = createFileName_()
-	const pdfBlob = createPdfBlob_(ss, fileName)
+	// 以下3行はVersion1で使用していたコード
+	//// const pdfBlob = createPdfBlob_(ss, fileName)
 	//// const pdfFile = createPdfFile_(pdfBlob)
 	//// const fileUrl = getFileUrl_(pdfFile)
 
 	/* Version2
 	   Urlfetchを使用したバージョン
-	 */
-	const { pdfBlob_ver2, file_ver2 } = createPdf_ver2_(FOLDER_ID, ssId, sheetId, fileName)
+	*/
+	const { pdfBlob_ver2, file_ver2 } = createPdf_ver2_(PDF_FOLDER_ID, ssId, sheetId, fileName)
 	const fileUrl_ver2 = getFileUrl_(file_ver2)
 
 	// メールに送信
@@ -57,7 +61,7 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 	// タイムスタンプ生成
 	const created_at = new Date()
 
-	//! スプレッドシートにフォームデータを書き込んで、lineNotify関数を実行する．
+	// スプレッドシートにフォームデータを書き込んで、lineNotify関数を実行する．
 	// スプレッドシートに追加する項目↓
 	// [uuid, created_at, created_at, date, radiologist, modality, start, end, description]
 	const uuid = Utilities.getUuid()
@@ -135,7 +139,7 @@ function doPost(e: GoogleAppsScript.Events.DoPost) {
 	const total_time = `${total_time_m}  /  ${total_time_h.toFixed(1)}`
 	sheet?.getRange(2, 12, 1, 1).setValue(total_time)
 
-	// スプレッドシートに書き込まれるまで少し待機
+	// スプレッドシートに書き込まれるまで5秒待機
 	Utilities.sleep(5 * 1000)
 
 	// TODO シートネーム、sheetUrl取得
@@ -195,29 +199,68 @@ const copySheet_ = () => {
 		sendLineNotify(`コピーシートError:: \n\n${e.message}`)
 	}
 }
+const testCopySheet_ = () => {
+	try {
+		// 新シート生成
+		// 既存シート数
+		const index = ss.getNumSheets()
+		// シート名生成
+		const fileName = createFileName_()
+		// シート挿入
+		ss.insertSheet(fileName, index + 1)
+		// 新しいシートを作成して旧シートからコピーする
+		if (sheet !== null) {
+			// 最終行
+			const lr = sheet?.getLastRow()
+			// 最終列
+			const lc = sheet?.getLastColumn()
+			// 新シート作成
+			const newSheet = ss.getSheetByName(fileName)
+			// 旧シートからデータを転記
+			newSheet?.getRange(1, 1, lr, lc).setValues(sheet?.getRange(1, 1, lr, lc).getValues())
+			// おそらくフォーマットが狂うので整形
+			// （ここでは7, 8列目に残業開始時間、終了時間が並んでいるものと想定）
+			newSheet?.getRange(2, 7, lr - 1, 2).setNumberFormat("hh:mm")
+			//（ここでは2,3,6列目の作成日時、変更日時2箇所）
+			newSheet?.getRange(2, 2, lr - 1, 2).setNumberFormat("yyyy-mm-dd")
+			// （ここでは6列目の実施日）
+			newSheet?.getRange(2, 6, lr - 1, 1).setNumberFormat("yyyy-mm-dd")
+
+			// 実行日が1日なら旧シートを初期化する
+			if (new Date().getDate() === 1) {
+				sheet?.deleteRows(2, lr - 1) // あえて.getRange().clear()は使わない
+			}
+		}
+
+		// トリガーが失敗したら知らせる
+	} catch (e: any) {
+		console.log("コピーシートError:: ", e)
+		sendLineNotify(`コピーシートError:: \n\n${e.message}`)
+	}
+}
 
 function test() {
 	console.log("This is Test Script !")
 
 	// シートをコピー
-	copySheet_()
+	testCopySheet_()
 	// let fileName = createFileName_()
 	const fileName = "_" + Utilities.getUuid()
-	const pdfBlob = createPdfBlob_(ss, fileName)
-	const pdfFile = createPdfFile_(pdfBlob)
-	const fileUrl = getFileUrl_(pdfFile)
+	// const pdfBlob = createPdfBlob_(ss, fileName)
+	// const pdfFile = createPdfFile_(pdfBlob)
+	// const fileUrl = getFileUrl_(pdfFile)
 
 	/* Version2
 	   Urlfetchを使用したバージョン
 	 */
-	const { pdfBlob_ver2, file_ver2 } = createPdf_ver2_(FOLDER_ID, ssId, sheetId, fileName)
+	const { pdfBlob_ver2, file_ver2 } = createPdf_ver2_(PDF_FOLDER_ID, ssId, sheetId, fileName)
 	const fileUrl_ver2 = getFileUrl_(file_ver2)
 
 	// メールに送信
-	sendEmail_(pdfBlob, fileName, fileUrl)
+	// sendEmail_(pdfBlob, fileName, fileUrl)
 	sendEmail_(pdfBlob_ver2, fileName, fileUrl_ver2)
 
 	// LINEに送信
-	const message = `\n\nTestです今月の時間外勤務表を送信しました．.\n\n${fileName}\n${fileUrl}`
+	const message = `\n\nTestです今月の時間外勤務表を送信しました．.\n\n${fileName}\n${fileUrl_ver2}`
 	sendLineNotify(message)
 }

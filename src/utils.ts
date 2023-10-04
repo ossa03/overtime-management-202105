@@ -12,14 +12,12 @@ const createPdfBlob_ = (ss: GoogleAppsScript.Spreadsheet.Spreadsheet, fileName: 
 	return pdfBlob
 }
 
-// googleDriveの指定のフォルダ("過去データ")へ保存する
-//! すべてのsheetがPDFに変換されたしまう．
-const FOLDER_ID = "1oVv95yEt3Pm1itm8ocqKW8ij88ZXTobG"
-const createPdfFile_ = (blob: GoogleAppsScript.Base.Blob): GoogleAppsScript.Drive.File => {
-	const folder = DriveApp.getFolderById(FOLDER_ID) //フォルダを指定
-	const pdfFile = folder.createFile(blob)
-	return pdfFile
-}
+// 以下のコードはすべてのsheetがPDFに変換されたしまう．
+// const createPdfFile_ = (blob: GoogleAppsScript.Base.Blob): GoogleAppsScript.Drive.File => {
+// 	const folder = DriveApp.getFolderById(PDF_FOLDER_ID) //フォルダを指定
+// 	const pdfFile = folder.createFile(blob)
+// 	return pdfFile
+// }
 
 // googleDriveに保存したファイルのURLを取得する
 const getFileUrl_ = (file: GoogleAppsScript.Drive.File): string => {
@@ -27,8 +25,8 @@ const getFileUrl_ = (file: GoogleAppsScript.Drive.File): string => {
 	return fileUrl
 }
 
-// 本日が1日かどうかを判定する関数:boolean
-const isCheckDateOne_ = () => {
+// 本日が1日かどうかを判定する関数
+const isCheckDateOne_ = (): boolean => {
 	const today = new Date().getDate()
 	return today === 1
 }
@@ -58,7 +56,7 @@ function createPdf_ver2_(folderId: string, ssId: string, sheetId: number, fileNa
 	//★★★自由にカスタマイズしてください★★★
 	//PDFのオプションを指定
 	const pdfOptions =
-		"&exportFormat=pdf&format=pdf" + //! PDFを指定している
+		"&exportFormat=pdf&format=pdf" + //! フォーマットをPDFに指定している
 		"&size=A4" + //用紙サイズ (A4)
 		"&portrait=true" + //用紙の向き true: 縦向き / false: 横向き
 		"&fitw=true" + //ページ幅を用紙にフィットさせるか true: フィットさせる / false: 原寸大
@@ -94,7 +92,6 @@ function createPdf_ver2_(folderId: string, ssId: string, sheetId: number, fileNa
 		.setName(fileName + "_ver2" + ".pdf")
 
 	//PDFの保存先フォルダー
-	//フォルダーIDは引数のfolderIdを使用します
 	const folder = DriveApp.getFolderById(folderId)
 
 	//PDFを指定したフォルダに保存する
